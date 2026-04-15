@@ -1,0 +1,2127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Ludo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --r: #e53935; --b: #1e88e5; --g: #43a047; --y: #fdd835;
+  --r2: #ffcdd2; --b2: #bbdefb; --g2: #c8e6c9; --y2: #fff9c4;
+  --r-glow: rgba(229,57,53,0.45); --b-glow: rgba(30,136,229,0.45);
+  --g-glow: rgba(67,160,71,0.45); --y-glow: rgba(253,216,53,0.45);
+  --board-size: min(86vmin, 560px);
+  --bg: #050508;
+  /* Logo theme colors */
+  --cyan:  #00e5ff;
+  --pink:  #e91e63;
+  --cyan2: rgba(0,229,255,0.18);
+  --pink2: rgba(233,30,99,0.18);
+  --cyan-glow: rgba(0,229,255,0.45);
+  --pink-glow: rgba(233,30,99,0.45);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0,229,255,0.05), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(233,30,99,0.04), transparent);
+  min-height: 100vh; min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 10px;
+  font-family: 'Poppins', system-ui, sans-serif;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ════════════════════════════════════════════════════════
+   WELCOME SCREEN — Cyber Black + Cyan/Pink Neon
+════════════════════════════════════════════════════════ */
+.welcome-screen {
+  position: fixed; inset: 0; z-index: 500;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: #050508;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.welcome-screen.hidden { opacity: 0; pointer-events: none; transform: scale(1.04); }
+
+/* Cyan + Pink ambient corner glows */
+.welcome-screen::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 20%, rgba(0,229,255,0.12), transparent),
+    radial-gradient(ellipse 50% 35% at 80% 80%, rgba(233,30,99,0.12), transparent),
+    radial-gradient(ellipse 40% 30% at 75% 15%, rgba(0,229,255,0.06), transparent),
+    radial-gradient(ellipse 45% 30% at 25% 85%, rgba(233,30,99,0.06), transparent);
+  pointer-events: none;
+}
+/* Scanline subtle texture */
+.welcome-screen::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,229,255,0.012) 2px,
+    rgba(0,229,255,0.012) 4px
+  );
+  pointer-events: none;
+}
+@keyframes twinkle { 0% { opacity: 0.5; } 100% { opacity: 1; } }
+
+.welcome-logo {
+  position: relative;
+  z-index: 1;
+  animation: float 3s ease-in-out infinite;
+}
+.welcome-logo img {
+  width: clamp(160px, 38vw, 260px);
+  height: auto;
+  display: block;
+  filter:
+    drop-shadow(0 0 18px rgba(255,180,60,0.55))
+    drop-shadow(0 0 40px rgba(255,100,60,0.3))
+    drop-shadow(0 6px 16px rgba(0,0,0,0.5));
+  animation: logo-glow 3s ease-in-out infinite alternate;
+}
+@keyframes logo-glow {
+  0%   { filter: drop-shadow(0 0 20px rgba(0,229,255,0.6))  drop-shadow(0 0 50px rgba(233,30,99,0.3))  drop-shadow(0 8px 20px rgba(0,0,0,0.7)); }
+  100% { filter: drop-shadow(0 0 36px rgba(0,229,255,0.9))  drop-shadow(0 0 80px rgba(233,30,99,0.5))  drop-shadow(0 8px 30px rgba(0,0,0,0.8)); }
+}
+
+.logo-text-fallback {
+  font-size: clamp(4rem, 16vw, 8rem);
+  font-weight: 900;
+  letter-spacing: 20px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ffd93d 25%, #6bcb77 50%, #4d96ff 75%, #ff6b6b 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 5s ease infinite;
+  filter: drop-shadow(0 0 40px rgba(255,255,255,0.12));
+}
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% center; }
+  50%      { background-position: 100% center; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+
+.welcome-glow {
+  position: absolute;
+  width: 400px; height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(0,229,255,0.15) 0%,
+    rgba(233,30,99,0.08) 50%,
+    transparent 70%);
+  filter: blur(50px);
+  animation: float 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.welcome-tagline {
+  color: rgba(0,229,255,0.5);
+  font-size: clamp(0.6rem, 2vw, 0.8rem);
+  letter-spacing: 10px;
+  text-transform: uppercase;
+  margin-bottom: 52px;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 0 12px rgba(0,229,255,0.4);
+}
+
+.welcome-btn {
+  background: linear-gradient(135deg, #007a99, #00b8d9, #00e5ff);
+  color: #000;
+  border: none;
+  border-radius: 60px;
+  padding: 20px 72px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    0 8px 40px rgba(0,229,255,0.5),
+    0 0 0 1px rgba(0,229,255,0.3) inset,
+    0 0 60px rgba(0,229,255,0.15);
+  transition: transform 0.15s, box-shadow 0.2s;
+  position: relative;
+  z-index: 1;
+}
+.welcome-btn:hover  {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 14px 55px rgba(0,229,255,0.65), 0 0 0 1px rgba(0,229,255,0.4) inset, 0 0 80px rgba(233,30,99,0.2);
+}
+.welcome-btn:active { transform: translateY(1px) scale(0.97); }
+
+.welcome-version {
+  color: rgba(0,229,255,0.2);
+  font-size: 0.6rem;
+  letter-spacing: 4px;
+  margin-top: 44px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ════════════════════════════════════════════════════════
+   SETUP SCREEN — Cyber Glass
+════════════════════════════════════════════════════════ */
+.setup-screen {
+  position: fixed; inset: 0; z-index: 400;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: #050508;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.setup-screen.hidden { opacity: 0; pointer-events: none; transform: scale(1.04); }
+
+.setup-card {
+  background: rgba(0,20,30,0.85);
+  border: 1px solid rgba(0,229,255,0.18);
+  border-radius: 32px;
+  padding: 38px 32px 32px;
+  width: min(92vw, 440px);
+  max-height: 96vh;
+  overflow-y: auto;
+  backdrop-filter: blur(40px) saturate(1.4);
+  -webkit-backdrop-filter: blur(40px) saturate(1.4);
+  box-shadow:
+    0 40px 100px rgba(0,0,0,0.7),
+    0 0 0 1px rgba(0,229,255,0.08) inset,
+    0 0 40px rgba(0,229,255,0.05);
+  position: relative;
+  z-index: 1;
+}
+.setup-card h2 {
+  color: var(--cyan);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 30px;
+  text-shadow: 0 0 20px rgba(0,229,255,0.5);
+}
+
+.setup-field { margin-bottom: 24px; }
+.setup-field label {
+  display: block;
+  color: rgba(255,255,255,0.4);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 3.5px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.setup-input {
+  width: 100%;
+  padding: 15px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.04);
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.setup-input::placeholder { color: rgba(255,255,255,0.15); }
+.setup-input:focus { border-color: rgba(0,229,255,0.55); box-shadow: 0 0 0 3px rgba(0,229,255,0.12), 0 0 16px rgba(0,229,255,0.1); background: rgba(0,229,255,0.04); }
+
+/* Avatar Selection — Larger & Colorful */
+.avatar-grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.avatar-option {
+  width: 62px; height: 62px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.7rem;
+  background: rgba(255,255,255,0.04);
+  border: 2.5px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+.avatar-option::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.15), transparent 60%);
+  pointer-events: none;
+}
+.avatar-option:hover { border-color: rgba(0,229,255,0.5); background: rgba(0,229,255,0.06); transform: scale(1.08); }
+.avatar-option.selected {
+  border-color: var(--cyan);
+  background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(233,30,99,0.15));
+  box-shadow: 0 0 20px rgba(0,229,255,0.45), 0 0 40px rgba(233,30,99,0.15);
+  transform: scale(1.15);
+}
+
+/* Player Count */
+.count-btns { display: flex; gap: 12px; }
+.count-btn {
+  flex: 1;
+  padding: 16px 0;
+  border-radius: 16px;
+  border: 2px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.45);
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 4px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+}
+.count-btn:hover { border-color: rgba(0,229,255,0.45); color: var(--cyan); }
+.count-btn.selected {
+  border-color: var(--cyan);
+  background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(233,30,99,0.1));
+  color: var(--cyan);
+  box-shadow: 0 0 18px rgba(0,229,255,0.4), 0 0 35px rgba(0,229,255,0.1);
+  text-shadow: 0 0 10px rgba(0,229,255,0.6);
+}
+
+.setup-go {
+  width: 100%;
+  margin-top: 10px;
+  padding: 17px 0;
+  border-radius: 16px;
+  border: none;
+  background: linear-gradient(135deg, #007a99 0%, #00b8d9 50%, #00e5ff 100%);
+  color: #000;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 6px 30px rgba(0,229,255,0.55);
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+.setup-go:hover  { transform: translateY(-2px); box-shadow: 0 10px 44px rgba(0,229,255,0.7); }
+.setup-go:active { transform: translateY(1px); }
+.setup-go:disabled { opacity: 0.2; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.setup-back {
+  display: inline-block;
+  margin-top: 20px;
+  color: rgba(0,229,255,0.3);
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  cursor: pointer;
+  background: none; border: none;
+  text-transform: uppercase;
+  transition: color 0.2s;
+}
+.setup-back:hover { color: rgba(0,229,255,0.7); }
+
+/* ════════════════════════════════════════════════════════
+   GAME TITLE
+════════════════════════════════════════════════════════ */
+.game-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.game-title img {
+  height: clamp(65px, 12vw, 100px);
+  width: auto;
+  filter:
+    drop-shadow(0 0 1px rgba(255,180,60,0.5))
+    drop-shadow(0 2px 2px rgba(0,0,0,0.4));
+}
+
+/* ════════════════════════════════════════════════════════
+   BOARD SHELL — Premium Dark Glass + Multi-color Glow
+════════════════════════════════════════════════════════ */
+.board-shell {
+  position: relative;
+  background: linear-gradient(145deg, #080c14, #0d1420, #080c14);
+  border-radius: 28px;
+  padding: 14px;
+  box-shadow:
+    0 0 0 1px rgba(0,229,255,0.12),
+    0 0 0 2px rgba(0,0,0,0.5),
+    0 0 60px rgba(0,229,255,0.1),
+    0 0 40px rgba(233,30,99,0.06),
+    0 32px 80px rgba(0,0,0,0.85),
+    0 8px 24px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(0,229,255,0.08),
+    inset 0 -1px 0 rgba(0,0,0,0.4);
+}
+
+#board {
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  grid-template-rows: repeat(15, 1fr);
+  width: var(--board-size);
+  height: var(--board-size);
+  background: #0d1117;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.4), inset 0 0 1px rgba(255,255,255,0.05);
+}
+
+/* ════════════════════════════════════════════════════════
+   CELLS — Dark Premium Design
+════════════════════════════════════════════════════════ */
+.cell {
+  background: #141b2d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: 0.5px solid rgba(80,100,160,0.1);
+}
+/* Path cells — dark charcoal with subtle blue tint */
+.cell.path {
+  background: linear-gradient(145deg, #171f33, #121829);
+}
+
+/* Colored zones with rich gradients + inner glow */
+.zone-r {
+  background: linear-gradient(135deg, #ff6b6b, #e53935, #c62828);
+  box-shadow: inset 0 0 14px rgba(255,255,255,0.18), inset 0 0 30px rgba(229,57,53,0.25);
+}
+.zone-b {
+  background: linear-gradient(135deg, #64b5f6, #1e88e5, #1565c0);
+  box-shadow: inset 0 0 14px rgba(255,255,255,0.18), inset 0 0 30px rgba(30,136,229,0.25);
+}
+.zone-g {
+  background: linear-gradient(135deg, #81c784, #43a047, #2e7d32);
+  box-shadow: inset 0 0 14px rgba(255,255,255,0.18), inset 0 0 30px rgba(67,160,71,0.25);
+}
+.zone-y {
+  background: linear-gradient(135deg, #ffd54f, #fdd835, #f9a825);
+  box-shadow: inset 0 0 14px rgba(255,255,255,0.22), inset 0 0 30px rgba(253,216,53,0.3);
+}
+
+/* Inner home panels — dark premium */
+.inner-r {
+  background: radial-gradient(ellipse at 40% 35%, rgba(255,100,100,0.22) 0%, rgba(30,10,10,0.9) 70%);
+  border-radius: 14px;
+  margin: 6%;
+  box-shadow: 0 0 18px rgba(229,57,53,0.3) inset, 0 0 2px rgba(255,100,100,0.5) inset;
+}
+.inner-b {
+  background: radial-gradient(ellipse at 40% 35%, rgba(80,160,255,0.22) 0%, rgba(8,18,38,0.9) 70%);
+  border-radius: 14px;
+  margin: 6%;
+  box-shadow: 0 0 18px rgba(30,136,229,0.3) inset, 0 0 2px rgba(80,160,255,0.5) inset;
+}
+.inner-g {
+  background: radial-gradient(ellipse at 40% 35%, rgba(80,200,100,0.22) 0%, rgba(8,22,12,0.9) 70%);
+  border-radius: 14px;
+  margin: 6%;
+  box-shadow: 0 0 18px rgba(67,160,71,0.3) inset, 0 0 2px rgba(80,200,100,0.5) inset;
+}
+.inner-y {
+  background: radial-gradient(ellipse at 40% 35%, rgba(255,220,60,0.22) 0%, rgba(28,22,4,0.9) 70%);
+  border-radius: 14px;
+  margin: 6%;
+  box-shadow: 0 0 18px rgba(253,216,53,0.3) inset, 0 0 2px rgba(255,220,60,0.5) inset;
+}
+
+/* Home stretch paths — dark with color glow */
+.str-r { background: linear-gradient(90deg, rgba(229,57,53,0.45), rgba(229,57,53,0.2), rgba(229,57,53,0.08)); box-shadow: inset 0 0 6px rgba(229,57,53,0.15); }
+.str-b { background: linear-gradient(180deg, rgba(30,136,229,0.45), rgba(30,136,229,0.2), rgba(30,136,229,0.08)); box-shadow: inset 0 0 6px rgba(30,136,229,0.15); }
+.str-g { background: linear-gradient(270deg, rgba(67,160,71,0.45), rgba(67,160,71,0.2), rgba(67,160,71,0.08)); box-shadow: inset 0 0 6px rgba(67,160,71,0.15); }
+.str-y { background: linear-gradient(0deg, rgba(253,216,53,0.45), rgba(253,216,53,0.2), rgba(253,216,53,0.08)); box-shadow: inset 0 0 6px rgba(253,216,53,0.15); }
+
+.center-bg {
+  background: #12172a;
+}
+
+/* Triangles with rich gradients + glow */
+.tri-r {
+  background: linear-gradient(135deg, #ff6b6b, #c62828);
+  clip-path: polygon(0 5%, 92% 50%, 0 95%);
+  filter: drop-shadow(0 0 4px rgba(229,57,53,0.3));
+}
+.tri-b {
+  background: linear-gradient(135deg, #64b5f6, #1565c0);
+  clip-path: polygon(5% 0, 95% 0, 50% 92%);
+  filter: drop-shadow(0 0 4px rgba(30,136,229,0.3));
+}
+.tri-g {
+  background: linear-gradient(135deg, #81c784, #2e7d32);
+  clip-path: polygon(100% 5%, 8% 50%, 100% 95%);
+  filter: drop-shadow(0 0 4px rgba(67,160,71,0.3));
+}
+.tri-y {
+  background: linear-gradient(135deg, #ffd54f, #f9a825);
+  clip-path: polygon(5% 100%, 95% 100%, 50% 8%);
+  filter: drop-shadow(0 0 4px rgba(253,216,53,0.3));
+}
+
+.home-star {
+  background: #12172a;
+  position: relative;
+}
+.home-star::after {
+  content: '★';
+  font-size: 1.5em; line-height: 1;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ffd93d 33%, #6bcb77 66%, #4d96ff 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; display: block;
+  filter: drop-shadow(0 0 6px rgba(255,215,0,0.5)) drop-shadow(0 0 12px rgba(124,58,237,0.3));
+}
+
+/* Board image overlay — centered logo on top of the board */
+.board-img-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(var(--board-size) * 0.1);
+  height: calc(var(--board-size) * 0.1);
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.82;
+  filter:
+    drop-shadow(0 0 10px rgba(0,229,255,0.5))
+    drop-shadow(0 0 22px rgba(233,30,99,0.35));
+}
+
+/* Safe spots with glow */
+.safe {
+  background: rgba(76,175,80,0.1) !important;
+  box-shadow: inset 0 0 10px rgba(76,175,80,0.18), 0 0 6px rgba(76,175,80,0.08);
+}
+.safe::before {
+  content: '★'; position: absolute; bottom: 0px; right: 1px;
+  font-size: 0.42em; color: #6dbf6d; pointer-events: none;
+  filter: drop-shadow(0 0 3px rgba(76,175,80,0.6));
+}
+
+/* Start markers with glow — bright on dark board */
+.start-r { outline: 2.5px solid rgba(229,57,53,0.9); outline-offset: -2.5px; border-radius: 3px; box-shadow: 0 0 12px rgba(229,57,53,0.45), inset 0 0 8px rgba(229,57,53,0.15); }
+.start-b { outline: 2.5px solid rgba(30,136,229,0.9); outline-offset: -2.5px; border-radius: 3px; box-shadow: 0 0 12px rgba(30,136,229,0.45), inset 0 0 8px rgba(30,136,229,0.15); }
+.start-g { outline: 2.5px solid rgba(67,160,71,0.9); outline-offset: -2.5px; border-radius: 3px; box-shadow: 0 0 12px rgba(67,160,71,0.45), inset 0 0 8px rgba(67,160,71,0.15); }
+.start-y { outline: 2.5px solid rgba(253,216,53,0.9); outline-offset: -2.5px; border-radius: 3px; box-shadow: 0 0 12px rgba(253,216,53,0.45), inset 0 0 8px rgba(253,216,53,0.15); }
+
+/* ════════════════════════════════════════════════════════
+   TOKENS — Crown-dome Ludo Pawn Style (XL Premium)
+════════════════════════════════════════════════════════ */
+.token {
+  width: 91%;
+  height: 91%;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), filter 0.18s;
+  position: relative;
+  /* Deep 3D sphere base shadow */
+  box-shadow:
+    inset 0 -12px 26px rgba(0,0,0,0.7),
+    inset 0 8px 18px rgba(255,255,255,0.6),
+    inset 0 3px 5px rgba(255,255,255,0.35),
+    0 10px 32px rgba(0,0,0,0.75),
+    0 4px 10px rgba(0,0,0,0.55),
+    0 0 0 2px rgba(255,255,255,0.22);
+}
+
+/* === Crown specular — large bright dome highlight === */
+.token::before {
+  content: '';
+  position: absolute;
+  top: 4%; left: 7%;
+  width: 58%; height: 42%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 38% 38%,
+    rgba(255,255,255,1)   0%,
+    rgba(255,255,255,0.85) 18%,
+    rgba(255,255,255,0.3)  45%,
+    transparent            70%
+  );
+  pointer-events: none;
+  transform: rotate(-25deg);
+  filter: blur(0.8px);
+}
+
+/* === Bottom rim-light glow === */
+.token::after {
+  content: '';
+  position: absolute;
+  bottom: 5%; right: 5%;
+  width: 36%; height: 26%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.4), transparent 65%);
+  pointer-events: none;
+}
+
+.token:hover {
+  transform: scale(1.25);
+  filter: brightness(1.15) saturate(1.2);
+}
+
+/* ── Red — Deep Ruby ── */
+.tok-r {
+  background:
+    radial-gradient(circle at 32% 26%,
+      #ffe4e4  0%,
+      #ff6b6b  6%,
+      #f44336 22%,
+      #c62828 48%,
+      #7f0000 75%,
+      #4a0000 100%);
+  border: 2.5px solid rgba(255,200,200,0.6);
+  box-shadow:
+    inset 0 -12px 26px rgba(0,0,0,0.7),
+    inset 0 8px 18px rgba(255,255,255,0.55),
+    0 10px 32px rgba(229,57,53,0.6),
+    0 4px 10px rgba(0,0,0,0.55),
+    0 0 24px rgba(229,57,53,0.35),
+    0 0 0 2px rgba(255,150,150,0.35);
+}
+
+/* ── Blue — Deep Sapphire ── */
+.tok-b {
+  background:
+    radial-gradient(circle at 32% 26%,
+      #e8f4ff  0%,
+      #64b5f6  6%,
+      #1e88e5 22%,
+      #1565c0 48%,
+      #0d3b8c 75%,
+      #041d55 100%);
+  border: 2.5px solid rgba(144,202,249,0.6);
+  box-shadow:
+    inset 0 -12px 26px rgba(0,0,0,0.7),
+    inset 0 8px 18px rgba(255,255,255,0.55),
+    0 10px 32px rgba(30,136,229,0.6),
+    0 4px 10px rgba(0,0,0,0.55),
+    0 0 24px rgba(30,136,229,0.35),
+    0 0 0 2px rgba(100,180,255,0.35);
+}
+
+/* ── Green — Vivid Emerald ── */
+.tok-g {
+  background:
+    radial-gradient(circle at 32% 26%,
+      #e8ffe9  0%,
+      #69bb6d  6%,
+      #43a047 22%,
+      #2e7d32 48%,
+      #1a5220 75%,
+      #0a2d10 100%);
+  border: 2.5px solid rgba(165,214,167,0.6);
+  box-shadow:
+    inset 0 -12px 26px rgba(0,0,0,0.7),
+    inset 0 8px 18px rgba(255,255,255,0.55),
+    0 10px 32px rgba(67,160,71,0.6),
+    0 4px 10px rgba(0,0,0,0.55),
+    0 0 24px rgba(67,160,71,0.35),
+    0 0 0 2px rgba(120,200,120,0.35);
+}
+
+/* ── Yellow — Rich Gold ── */
+.tok-y {
+  background:
+    radial-gradient(circle at 32% 26%,
+      #fffddf  0%,
+      #ffe843  6%,
+      #fdd835 22%,
+      #f9a825 48%,
+      #e65100 75%,
+      #8d2900 100%);
+  border: 2.5px solid rgba(255,241,118,0.6);
+  box-shadow:
+    inset 0 -12px 26px rgba(0,0,0,0.7),
+    inset 0 8px 18px rgba(255,255,255,0.55),
+    0 10px 32px rgba(253,216,53,0.6),
+    0 4px 10px rgba(0,0,0,0.55),
+    0 0 24px rgba(253,216,53,0.35),
+    0 0 0 2px rgba(255,230,80,0.35);
+}
+
+/* Highlight for selectable tokens — cyan neon pulse */
+@keyframes pulse-highlight {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0,229,255,0.9), inset 0 -10px 22px rgba(0,0,0,0.65), inset 0 6px 14px rgba(255,255,255,0.55);
+    filter: brightness(1.15);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(0,229,255,0), 0 0 24px rgba(0,229,255,0.6), 0 0 40px rgba(233,30,99,0.2), inset 0 -10px 22px rgba(0,0,0,0.65), inset 0 6px 14px rgba(255,255,255,0.55);
+    filter: brightness(1.35);
+  }
+}
+.highlight {
+  outline: 2.5px solid var(--cyan) !important;
+  outline-offset: 2px;
+  animation: pulse-highlight 0.9s ease infinite;
+  z-index: 2;
+  transform: scale(1.06);
+}
+
+/* Jump/Hop animation for token movement — satisfying marble bounce */
+@keyframes token-hop {
+  0%   { transform: scale(1) translateY(0);      filter: brightness(1); }
+  12%  { transform: scale(1.6) translateY(-22px); filter: brightness(1.35) drop-shadow(0 8px 16px rgba(0,0,0,0.5)); }
+  38%  { transform: scale(1.25) translateY(-10px); filter: brightness(1.15); }
+  58%  { transform: scale(1.05) translateY(-13px); filter: brightness(1.05); }
+  74%  { transform: scale(1.12) translateY(-5px);  filter: brightness(1.1); }
+  88%  { transform: scale(0.97) translateY(-1px);  filter: brightness(1); }
+  100% { transform: scale(1) translateY(0);      filter: brightness(1); }
+}
+.moving { animation: token-hop 0.46s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@keyframes pop-out {
+  0%   { transform: scale(1); opacity: 1; }
+  35%  { transform: scale(1.8); opacity: 0.35; }
+  100% { transform: scale(0); opacity: 0; }
+}
+.killed { animation: pop-out 0.42s ease forwards; }
+
+/* ════════════════════════════════════════════════════════
+   PROFILE AVATARS + PER-PLAYER DICE
+════════════════════════════════════════════════════════ */
+.profile {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 10;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  pointer-events: none;
+}
+.profile.hidden-profile { opacity: 0; transform: scale(0.5); pointer-events: none; }
+
+.profile-ring {
+  width: 50px; height: 50px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.45rem;
+  transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
+}
+.profile-ring::before {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+/* Active turn — cyan neon glow */
+.profile.active-turn .profile-ring {
+  transform: scale(1.15);
+}
+.profile.active-turn .profile-ring::before {
+  border-color: var(--cyan);
+  box-shadow: 0 0 14px rgba(0,229,255,0.6);
+  animation: cyan-pulse 1.5s ease-in-out infinite;
+}
+@keyframes cyan-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(0,229,255,0.4), 0 0 20px rgba(0,229,255,0.1); transform: scale(1); }
+  50%      { box-shadow: 0 0 22px rgba(0,229,255,0.8), 0 0 40px rgba(233,30,99,0.2); transform: scale(1.07); }
+}
+
+/* Thinking dots animation for bots */
+.thinking-dots {
+  display: none;
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  gap: 3px;
+}
+.profile.active-turn.is-bot .thinking-dots { display: flex; }
+.thinking-dots span {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 4px var(--cyan);
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.15s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+.ring-r { background: linear-gradient(145deg, #ef5350, #c62828); box-shadow: 0 4px 18px var(--r-glow); }
+.ring-b { background: linear-gradient(145deg, #42a5f5, #1565c0); box-shadow: 0 4px 18px var(--b-glow); }
+.ring-g { background: linear-gradient(145deg, #66bb6a, #2e7d32); box-shadow: 0 4px 18px var(--g-glow); }
+.ring-y { background: linear-gradient(145deg, #ffca28, #f57f17); box-shadow: 0 4px 18px var(--y-glow); }
+
+.profile-name {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+  max-width: 72px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.3s;
+}
+.profile.active-turn .profile-name { color: var(--cyan); text-shadow: 0 0 8px rgba(0,229,255,0.5); }
+
+/* ════════════════════════════════════════════════════════
+   PER-PLAYER DICE — Premium Ivory Cube with Color Accent
+════════════════════════════════════════════════════════ */
+.player-dice {
+  width: 78px; height: 78px;
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.9rem;
+  line-height: 1;
+  color: #000000;
+  background: #ffffff;
+  border: 1.5px solid rgba(255,255,255,0.9);
+  box-shadow:
+    0 6px 0 0 #d0d0d0,
+    0 7px 0 0 #c0c0c0,
+    0 8px 0 0 #b0b0b0,
+    0 12px 30px rgba(0,0,0,0.5),
+    0 4px 10px rgba(0,0,0,0.25),
+    inset 0 2px 6px rgba(255,255,255,1),
+    inset 0 -2px 4px rgba(0,0,0,0.08);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.14s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.15s, opacity 0.3s;
+  pointer-events: auto;
+  opacity: 0;
+  transform: scale(0.5) translateY(6px);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Top-left gloss panel */
+.player-dice::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 65%; height: 45%;
+  border-radius: 14px 14px 40% 0;
+  background: linear-gradient(135deg,
+    rgba(255,255,255,0.95) 0%,
+    rgba(255,255,255,0.3)  60%,
+    transparent);
+  pointer-events: none;
+}
+
+/* Bottom-right subtle reflection */
+.player-dice::after {
+  content: '';
+  position: absolute;
+  bottom: 4px; right: 4px;
+  width: 30%; height: 25%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.35), transparent 70%);
+  pointer-events: none;
+}
+
+.player-dice.visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.player-dice:hover {
+  transform: scale(1.15) translateY(-4px);
+  box-shadow:
+    0 6px 0 0 #d0d0d0,
+    0 7px 0 0 #c0c0c0,
+    0 8px 0 0 #b0b0b0,
+    0 16px 38px rgba(0,0,0,0.55),
+    0 6px 14px rgba(0,0,0,0.3),
+    inset 0 2px 6px rgba(255,255,255,1),
+    inset 0 -2px 4px rgba(0,0,0,0.08);
+}
+
+.player-dice:active {
+  transform: scale(0.92) translateY(6px);
+  box-shadow:
+    0 2px 0 0 #d0d0d0,
+    0 3px 0 0 #c0c0c0,
+    0 6px 14px rgba(0,0,0,0.35),
+    inset 0 2px 6px rgba(255,255,255,0.9),
+    inset 0 3px 8px rgba(0,0,0,0.1);
+}
+
+.player-dice.rolling { animation: shake 0.6s ease; }
+.player-dice.disabled { pointer-events: none; cursor: default; }
+
+@keyframes shake {
+  0%   { transform: rotate(0deg)   scale(1); }
+  12%  { transform: rotate(-22deg) scale(1.15); }
+  28%  { transform: rotate(18deg)  scale(1.1); }
+  44%  { transform: rotate(-14deg) scale(1.07); }
+  60%  { transform: rotate(9deg)   scale(1.04); }
+  76%  { transform: rotate(-5deg)  scale(1.02); }
+  90%  { transform: rotate(2deg)   scale(1.01); }
+  100% { transform: rotate(0deg)   scale(1); }
+}
+
+/* Profile positions — offset accounts for 52px dice */
+.pos-tl { top: -42px; left: 14px; }
+.pos-tr { top: -42px; right: 14px; }
+.pos-bl { bottom: -48px; left: 14px; }
+.pos-br { bottom: -48px; right: 14px; }
+
+/* ════════════════════════════════════════════════════════
+   CONTROLS — Minimal (just mute + roll for human)
+════════════════════════════════════════════════════════ */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.players {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.player-badge {
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 1.5px;
+  opacity: 0.25;
+  transition: opacity 0.3s, transform 0.3s, box-shadow 0.3s;
+  color: white;
+  cursor: default;
+  user-select: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.player-badge.active {
+  opacity: 1;
+  transform: scale(1.06);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 12px rgba(0,229,255,0.25);
+  outline: 1px solid rgba(0,229,255,0.3);
+}
+.pb-r { background: linear-gradient(135deg, var(--r), #b71c1c); }
+.pb-b { background: linear-gradient(135deg, var(--b), #0d47a1); }
+.pb-g { background: linear-gradient(135deg, var(--g), #1b5e20); }
+.pb-y { background: linear-gradient(135deg, var(--y), #e65100); color: #222; }
+.player-badge .pname { display: inline; }
+
+/* ════════════════════════════════════════════════════════
+   MUTE BUTTON
+════════════════════════════════════════════════════════ */
+.mute-btn {
+  background: rgba(0,229,255,0.05);
+  color: rgba(0,229,255,0.5);
+  border: 1px solid rgba(0,229,255,0.15);
+  border-radius: 50%;
+  width: 36px; height: 36px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s, color 0.2s, transform 0.1s, box-shadow 0.2s;
+  flex-shrink: 0;
+}
+.mute-btn:hover  { background: rgba(0,229,255,0.12); color: var(--cyan); box-shadow: 0 0 14px rgba(0,229,255,0.3); }
+.mute-btn:active { transform: scale(0.88); }
+.mute-btn.muted  { background: rgba(233,30,99,0.15); color: var(--pink); border-color: rgba(233,30,99,0.3); box-shadow: 0 0 10px rgba(233,30,99,0.2); }
+
+/* ════════════════════════════════════════════════════════
+   QUIT BUTTON
+════════════════════════════════════════════════════════ */
+.quit-btn {
+  position: fixed;
+  top: 14px; left: 14px;
+  z-index: 50;
+  background: rgba(0,229,255,0.05);
+  border: 1px solid rgba(0,229,255,0.2);
+  border-radius: 14px;
+  width: auto; height: 36px;
+  padding: 0 14px;
+  font-size: 0.72rem;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(0,229,255,0.55);
+  cursor: pointer;
+  display: none;
+  align-items: center; justify-content: center;
+  gap: 4px;
+  transition: background 0.2s, color 0.2s, transform 0.12s, box-shadow 0.2s;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+.quit-btn::before { content: '←'; font-size: 1rem; }
+.quit-btn:hover  { background: rgba(233,30,99,0.18); color: var(--pink); border-color: rgba(233,30,99,0.4); box-shadow: 0 4px 20px rgba(233,30,99,0.3); }
+.quit-btn:active { transform: scale(0.88); }
+
+/* ════════════════════════════════════════════════════════
+   QUIT MODAL
+════════════════════════════════════════════════════════ */
+.quit-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,0.65);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  animation: fadeIn 0.25s ease;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.quit-card {
+  background: rgba(0,15,25,0.9);
+  border: 1px solid rgba(0,229,255,0.2);
+  border-radius: 28px;
+  padding: 38px 42px 32px;
+  text-align: center;
+  backdrop-filter: blur(40px) saturate(1.3);
+  -webkit-backdrop-filter: blur(40px) saturate(1.3);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 40px rgba(0,229,255,0.08);
+  width: min(85vw, 320px);
+}
+.quit-card h3 {
+  font-family: 'Poppins', sans-serif;
+  color: var(--cyan);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  margin-bottom: 30px;
+  text-shadow: 0 0 16px rgba(0,229,255,0.5);
+}
+.quit-btns { display: flex; gap: 12px; }
+.quit-btns button {
+  flex: 1;
+  padding: 14px 0;
+  border-radius: 14px;
+  border: none;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: transform 0.12s, box-shadow 0.15s;
+}
+.quit-yes {
+  background: linear-gradient(135deg, var(--pink), #c2185b);
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(233,30,99,0.4);
+}
+.quit-yes:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(233,30,99,0.6); }
+.quit-no {
+  background: rgba(0,229,255,0.06);
+  color: rgba(0,229,255,0.6);
+  border: 1px solid rgba(0,229,255,0.2);
+}
+.quit-no:hover { background: rgba(0,229,255,0.12); color: var(--cyan); box-shadow: 0 0 14px rgba(0,229,255,0.2); }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ════════════════════════════════════════════════════════
+   BOARD SHELL — top/bottom margin for profile overhangs
+════════════════════════════════════════════════════════ */
+.board-shell {
+  margin-top: 56px;
+  margin-bottom: 60px;
+}
+
+/* ════════════════════════════════════════════════════════
+   RESPONSIVE — All screen sizes
+════════════════════════════════════════════════════════ */
+
+/* ── Large desktop (1100px+) — default, no change needed ── */
+
+/* ── Medium desktop / tablet landscape (768px – 1099px) ── */
+@media (max-width: 1099px) {
+  :root { --board-size: min(82vmin, 520px); }
+}
+
+/* ── Tablet portrait (600px – 767px) ── */
+@media (max-width: 767px) {
+  :root { --board-size: min(84vmin, 430px); }
+  body { gap: 10px; padding: 8px; }
+  .board-shell { margin-top: 50px; margin-bottom: 54px; }
+  .profile-ring { width: 46px; height: 46px; font-size: 1.3rem; }
+  .player-dice  { width: 68px; height: 68px; font-size: 2.6rem; border-radius: 16px; }
+  .pos-tl { top: -40px; left: 12px; }
+  .pos-tr { top: -40px; right: 12px; }
+  .pos-bl { bottom: -44px; left: 12px; }
+  .pos-br { bottom: -44px; right: 12px; }
+  .welcome-logo img { width: clamp(140px, 36vw, 220px); }
+  .setup-card { padding: 30px 24px 26px; }
+  .avatar-option { width: 54px; height: 54px; font-size: 1.5rem; }
+}
+
+/* ── Mobile large (480px – 599px) ── */
+@media (max-width: 599px) {
+  :root { --board-size: min(88vmin, 390px); }
+  body { gap: 8px; padding: 6px; }
+  .board-shell { padding: 10px; border-radius: 22px; margin-top: 46px; margin-bottom: 50px; }
+  .profile-ring { width: 42px; height: 42px; font-size: 1.2rem; }
+  .profile-name { font-size: 0.48rem; max-width: 54px; }
+  .player-dice  { width: 60px; height: 60px; font-size: 2.3rem; border-radius: 15px; }
+  .pos-tl { top: -38px; left: 10px; }
+  .pos-tr { top: -38px; right: 10px; }
+  .pos-bl { bottom: -42px; left: 10px; }
+  .pos-br { bottom: -42px; right: 10px; }
+  .player-badge { padding: 6px 11px; font-size: 0.62rem; }
+  .welcome-logo img { width: clamp(130px, 40vw, 200px); }
+  .welcome-btn { padding: 17px 52px; font-size: 0.9rem; letter-spacing: 4px; }
+  .setup-card { width: min(95vw, 400px); padding: 28px 20px 24px; border-radius: 26px; }
+  .avatar-option { width: 50px; height: 50px; font-size: 1.4rem; }
+  .inner-r, .inner-b, .inner-g, .inner-y { margin: 5%; border-radius: 10px; }
+}
+
+/* ── Mobile standard (400px – 479px) ── */
+@media (max-width: 479px) {
+  :root { --board-size: min(93vmin, 350px); }
+  body { gap: 6px; padding: 4px; }
+  .board-shell { padding: 9px; border-radius: 18px; margin-top: 42px; margin-bottom: 46px; }
+  .profile-ring { width: 38px; height: 38px; font-size: 1.1rem; }
+  .profile-name { font-size: 0.44rem; max-width: 48px; letter-spacing: 1px; }
+  .player-dice  { width: 52px; height: 52px; font-size: 2rem; border-radius: 13px; }
+  .pos-tl { top: -34px; left: 8px; }
+  .pos-tr { top: -34px; right: 8px; }
+  .pos-bl { bottom: -38px; left: 8px; }
+  .pos-br { bottom: -38px; right: 8px; }
+  .player-badge { padding: 5px 9px; font-size: 0.58rem; letter-spacing: 1px; }
+  .controls { gap: 8px; }
+  .mute-btn { width: 32px; height: 32px; font-size: 0.9rem; }
+  .welcome-logo img { width: clamp(120px, 45vw, 180px); }
+  .welcome-btn { padding: 15px 44px; font-size: 0.85rem; letter-spacing: 3px; }
+  .welcome-tagline { letter-spacing: 6px; margin-bottom: 38px; }
+  .setup-card { width: min(96vw, 360px); padding: 24px 18px 20px; border-radius: 22px; }
+  .setup-card h2 { font-size: 1rem; letter-spacing: 4px; margin-bottom: 22px; }
+  .avatar-option { width: 46px; height: 46px; font-size: 1.3rem; }
+  .avatar-grid { gap: 9px; }
+  .setup-input { padding: 13px 16px; }
+  .count-btn { padding: 13px 0; font-size: 0.95rem; }
+  .setup-go { padding: 15px 0; font-size: 0.88rem; }
+  .inner-r, .inner-b, .inner-g, .inner-y { margin: 5%; border-radius: 9px; }
+}
+
+/* ── Mobile small (< 400px) ── */
+@media (max-width: 399px) {
+  :root { --board-size: min(96vmin, 310px); }
+  body { gap: 5px; padding: 3px; }
+  .board-shell { padding: 8px; border-radius: 16px; margin-top: 36px; margin-bottom: 40px; }
+  .profile-ring { width: 32px; height: 32px; font-size: 0.95rem; }
+  .profile-name { font-size: 0.38rem; max-width: 40px; letter-spacing: 0.5px; }
+  .player-dice  { width: 46px; height: 46px; font-size: 1.75rem; border-radius: 11px; }
+  .pos-tl { top: -28px; left: 6px; }
+  .pos-tr { top: -28px; right: 6px; }
+  .pos-bl { bottom: -32px; left: 6px; }
+  .pos-br { bottom: -32px; right: 6px; }
+  .profile { gap: 2px; }
+  .player-badge { padding: 4px 8px; font-size: 0.54rem; letter-spacing: 0.5px; }
+  .controls { gap: 6px; }
+  .mute-btn { width: 30px; height: 30px; font-size: 0.85rem; }
+  .welcome-logo img { width: clamp(110px, 50vw, 160px); }
+  .welcome-btn { padding: 14px 36px; font-size: 0.8rem; letter-spacing: 2px; }
+  .welcome-tagline { font-size: 0.55rem; letter-spacing: 5px; margin-bottom: 32px; }
+  .setup-card { width: 97vw; padding: 20px 14px 18px; border-radius: 18px; }
+  .setup-card h2 { font-size: 0.9rem; letter-spacing: 3px; margin-bottom: 18px; }
+  .avatar-option { width: 40px; height: 40px; font-size: 1.15rem; }
+  .avatar-grid { gap: 7px; }
+  .setup-input { padding: 11px 14px; font-size: 0.88rem; }
+  .count-btn { padding: 12px 0; font-size: 0.88rem; }
+  .setup-go { padding: 13px 0; font-size: 0.82rem; letter-spacing: 3px; }
+  .inner-r, .inner-b, .inner-g, .inner-y { margin: 4%; border-radius: 8px; }
+  .quit-btn { height: 30px; padding: 0 10px; font-size: 0.65rem; }
+}
+
+/* ── Landscape mobile (height < 500px) — horizontal layout ── */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root { --board-size: min(90vh, 340px); }
+  body { flex-direction: row; gap: 12px; padding: 6px; justify-content: center; align-items: center; overflow-x: auto; }
+  .board-shell { margin-top: 44px; margin-bottom: 44px; flex-shrink: 0; }
+  .controls { flex-direction: column; gap: 6px; align-items: center; }
+  .players { flex-direction: column; }
+  .player-badge { font-size: 0.55rem; padding: 5px 8px; }
+  .profile-ring { width: 34px; height: 34px; font-size: 1rem; }
+  .profile-name { display: none; }
+  .player-dice  { width: 42px; height: 42px; font-size: 1.55rem; border-radius: 10px; }
+  .pos-tl { top: -30px; left: 6px; }
+  .pos-tr { top: -30px; right: 6px; }
+  .pos-bl { bottom: -30px; left: 6px; }
+  .pos-br { bottom: -30px; right: 6px; }
+  .welcome-screen { flex-direction: row; gap: 32px; }
+  .welcome-logo img { width: clamp(100px, 25vh, 160px); }
+  .welcome-tagline { margin-bottom: 24px; font-size: 0.55rem; letter-spacing: 6px; }
+  .welcome-btn { padding: 14px 40px; font-size: 0.82rem; }
+  .setup-card { padding: 20px 20px 18px; max-height: 95vh; overflow-y: auto; }
+  .setup-card h2 { margin-bottom: 14px; }
+  .setup-field { margin-bottom: 14px; }
+  .avatar-option { width: 42px; height: 42px; font-size: 1.2rem; }
+  .avatar-grid { gap: 8px; }
+}
+
+/* ── Very small landscape (height < 380px) ── */
+@media (max-height: 380px) and (orientation: landscape) {
+  :root { --board-size: min(88vh, 280px); }
+  .board-shell { padding: 7px; border-radius: 14px; }
+  .player-dice  { width: 38px; height: 38px; font-size: 1.35rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════ WELCOME SCREEN ════════════ -->
+<div class="welcome-screen" id="welcomeScreen">
+  <div class="welcome-glow"></div>
+  <div class="welcome-logo">
+    <img src="ludo.png" alt="Ludo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+    <span class="logo-text-fallback" style="display:none">LUDO</span>
+  </div>
+  <div class="welcome-tagline">The Classic Board Game</div>
+  <button class="welcome-btn" id="welcomeBtn">Start New Game</button>
+  <div class="welcome-version">v3.0</div>
+</div>
+
+<!-- ════════════ SETUP SCREEN ════════════ -->
+<div class="setup-screen hidden" id="setupScreen">
+  <div class="setup-card">
+    <h2>Setup Game</h2>
+
+    <div class="setup-field">
+      <label>Your Name</label>
+      <input class="setup-input" id="nameInput" type="text" placeholder="Enter your name…" maxlength="16" autocomplete="off" spellcheck="false">
+    </div>
+
+    <div class="setup-field">
+      <label>Choose Avatar</label>
+      <div class="avatar-grid" id="avatarGrid">
+        <div class="avatar-option selected" data-avatar="🧑‍🚀">🧑‍🚀</div>
+        <div class="avatar-option" data-avatar="🦊">🦊</div>
+        <div class="avatar-option" data-avatar="🐉">🐉</div>
+        <div class="avatar-option" data-avatar="🦅">🦅</div>
+        <div class="avatar-option" data-avatar="🎮">🎮</div>
+        <div class="avatar-option" data-avatar="⚡">⚡</div>
+        <div class="avatar-option" data-avatar="🔥">🔥</div>
+        <div class="avatar-option" data-avatar="👑">👑</div>
+      </div>
+    </div>
+
+    <div class="setup-field">
+      <label>Players</label>
+      <div class="count-btns">
+        <button class="count-btn selected" data-count="2">2</button>
+        <button class="count-btn" data-count="4">4</button>
+      </div>
+    </div>
+
+    <button class="setup-go" id="goBtn" disabled>Go!</button>
+    <div style="text-align:center">
+      <button class="setup-back" id="backBtn">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ GAME UI ════════════ -->
+<div class="game-title" id="gameTitle" style="display:none"></div>
+
+<div class="board-shell" id="boardShell" style="display:none">
+  <div id="board"></div>
+  <img src="ludo.jpeg" class="board-img-overlay" alt="">
+
+  <!-- Profile Avatars + Per-Player Dice -->
+  <div class="profile pos-tl" id="prof-r">
+    <div class="profile-ring ring-r" id="profRing-r">
+      🧑‍🚀
+      <div class="thinking-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div class="profile-name" id="profName-r">RED</div>
+    <div class="player-dice" id="dice-r" data-color="r">⚀</div>
+  </div>
+  <div class="profile pos-tr" id="prof-b">
+    <div class="profile-ring ring-b" id="profRing-b">
+      🤖
+      <div class="thinking-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div class="profile-name" id="profName-b">BLUE</div>
+    <div class="player-dice" id="dice-b" data-color="b">⚀</div>
+  </div>
+  <div class="profile pos-bl" id="prof-y">
+    <div class="profile-ring ring-y" id="profRing-y">
+      🤖
+      <div class="thinking-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div class="profile-name" id="profName-y">YELLOW</div>
+    <div class="player-dice" id="dice-y" data-color="y">⚀</div>
+  </div>
+  <div class="profile pos-br" id="prof-g">
+    <div class="profile-ring ring-g" id="profRing-g">
+      🤖
+      <div class="thinking-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div class="profile-name" id="profName-g">GREEN</div>
+    <div class="player-dice" id="dice-g" data-color="g">⚀</div>
+  </div>
+</div>
+
+<div class="controls" id="gameControls" style="display:none">
+  <div class="players" id="playersRow">
+    <div class="player-badge pb-r active" id="badge-r"><span class="pname">RED</span></div>
+    <div class="player-badge pb-b"        id="badge-b"><span class="pname">BLUE</span></div>
+    <div class="player-badge pb-g"        id="badge-g"><span class="pname">GREEN</span></div>
+    <div class="player-badge pb-y"        id="badge-y"><span class="pname">YELLOW</span></div>
+  </div>
+  <button class="mute-btn" id="muteBtn" title="Toggle sound">🔊</button>
+</div>
+
+<button class="quit-btn" id="quitBtn" title="Quit to menu">Back</button>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   LUDO — Premium Mobile Game
+════════════════════════════════════════════════════════ */
+
+const FACES       = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+const COLOR_NAMES = { r:'Red', b:'Blue', g:'Green', y:'Yellow' };
+const COLORS      = ['r','b','g','y'];
+const BOT_AVATARS = { b:'🤖', g:'🤖', y:'🤖' };
+
+const PATH = [
+  [6,1],[6,2],[6,3],[6,4],[6,5],
+  [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],
+  [0,7],[0,8],
+  [1,8],[2,8],[3,8],[4,8],[5,8],
+  [6,9],[6,10],[6,11],[6,12],[6,13],[6,14],
+  [7,14],[8,14],
+  [8,13],[8,12],[8,11],[8,10],[8,9],
+  [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],
+  [14,7],[14,6],
+  [13,6],[12,6],[11,6],[10,6],[9,6],
+  [8,5],[8,4],[8,3],[8,2],[8,1],[8,0],
+  [7,0],[6,0],
+];
+
+const HOME_STRETCH = {
+  r: [[7,1],[7,2],[7,3],[7,4],[7,5]],
+  b: [[1,7],[2,7],[3,7],[4,7],[5,7]],
+  g: [[7,13],[7,12],[7,11],[7,10],[7,9]],
+  y: [[13,7],[12,7],[11,7],[10,7],[9,7]],
+};
+
+const START_IDX = { r:0, b:13, g:26, y:39 };
+const SAFE_COORDS = new Set(['6,1','1,8','8,13','13,6','8,2','2,6','6,12','12,8']);
+
+const HOME_SLOTS = {
+  r: [[1,1],[1,3],[3,1],[3,3]],
+  b: [[1,10],[1,12],[3,10],[3,12]],
+  y: [[10,1],[10,3],[12,1],[12,3]],
+  g: [[10,10],[10,12],[12,10],[12,12]],
+};
+
+const rc = (r,c) => `${r},${c}`;
+
+function getCoord(color, pos) {
+  if (pos < 0 || pos >= 56) return null;
+  if (pos <= 50) return PATH[(START_IDX[color] + pos) % 52];
+  return HOME_STRETCH[color][pos - 51];
+}
+
+function isSafe(color, pos) {
+  if (pos >= 51) return true;
+  const coord = getCoord(color, pos);
+  return coord ? SAFE_COORDS.has(rc(...coord)) : true;
+}
+
+/* ════════════════════════════════════════════════════════
+   SOUND ENGINE
+════════════════════════════════════════════════════════ */
+const SFX = (() => {
+  let _ctx = null, muted = false;
+  function ctx() {
+    if (!_ctx) _ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_ctx.state === 'suspended') _ctx.resume();
+    return _ctx;
+  }
+  function noiseBuffer(duration, decay = 0.3) {
+    const c = ctx(), len = Math.floor(c.sampleRate * duration);
+    const buf = c.createBuffer(1, len, c.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (len * decay));
+    return buf;
+  }
+  function playNoise({ duration = 0.06, decay = 0.25, gain = 0.4, filterType = 'bandpass', freq = 1600, Q = 1 } = {}) {
+    const c = ctx(), src = c.createBufferSource();
+    src.buffer = noiseBuffer(duration, decay);
+    const flt = c.createBiquadFilter();
+    flt.type = filterType; flt.frequency.value = freq; flt.Q.value = Q;
+    const g = c.createGain(); g.gain.value = gain;
+    src.connect(flt); flt.connect(g); g.connect(c.destination); src.start();
+  }
+  function playTone({ type = 'sine', freqStart, freqEnd, gainPeak = 0.3, attack = 0.01, release = 0.12, delay = 0 } = {}) {
+    const c = ctx(), t = c.currentTime + delay;
+    const osc = c.createOscillator();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freqStart, t);
+    if (freqEnd) osc.frequency.exponentialRampToValueAtTime(freqEnd, t + attack + release);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(gainPeak, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + release);
+    osc.connect(g); g.connect(c.destination);
+    osc.start(t); osc.stop(t + attack + release + 0.02);
+  }
+  return {
+    diceClick() { if (!muted) playNoise({ duration: 0.03, decay: 0.2, gain: 0.3, filterType: 'bandpass', freq: 1800, Q: 1.5 }); },
+    diceLand()  { if (!muted) { playTone({ type: 'sine', freqStart: 210, freqEnd: 55, gainPeak: 0.55, attack: 0.005, release: 0.2 }); playNoise({ duration: 0.04, decay: 0.15, gain: 0.25, filterType: 'highpass', freq: 2200 }); } },
+    tokenStep() { if (!muted) playTone({ type: 'sine', freqStart: 780, freqEnd: 420, gainPeak: 0.18, attack: 0.005, release: 0.07 }); },
+    tokenEnter(){ if (!muted) playTone({ type: 'triangle', freqStart: 520, freqEnd: 880, gainPeak: 0.28, attack: 0.01, release: 0.14 }); },
+    kill()      { if (!muted) { playNoise({ duration: 0.22, decay: 0.18, gain: 0.7, filterType: 'lowpass', freq: 550 }); playTone({ type: 'sawtooth', freqStart: 320, freqEnd: 55, gainPeak: 0.4, attack: 0.01, release: 0.28 }); } },
+    win()       { if (!muted) { [523.25,659.25,783.99,1046.5,1318.51].forEach((f,i) => { const l = i===4; playTone({type:'triangle',freqStart:f,gainPeak:0.26,attack:0.04,release:l?0.9:0.28,delay:i*0.17}); playTone({type:'sine',freqStart:f*1.004,gainPeak:0.14,attack:0.04,release:l?0.9:0.28,delay:i*0.17}); }); [523.25,659.25,783.99].forEach(f => playTone({type:'triangle',freqStart:f,gainPeak:0.18,attack:0.06,release:1.4,delay:5*0.17})); } },
+    toggleMute(){ muted = !muted; return muted; },
+    isMuted()   { return muted; }
+  };
+})();
+
+/* ════════════════════════════════════════════════════════
+   GAME STATE
+════════════════════════════════════════════════════════ */
+let tokens = {}, turnIdx = 0, lastRoll = 0, waitMove = false;
+let animating = false, gameOver = false, rolling = false;
+let activeColors = [...COLORS], playerNames = {}, selectedCount = 2, selectedAvatar = '🧑‍🚀';
+
+/* ── DOM refs ── */
+const boardEl = document.getElementById('board');
+const cellRefs = {};
+
+const welcomeScreen = document.getElementById('welcomeScreen');
+const setupScreen   = document.getElementById('setupScreen');
+const welcomeBtn    = document.getElementById('welcomeBtn');
+const nameInput     = document.getElementById('nameInput');
+const goBtn         = document.getElementById('goBtn');
+const backBtn       = document.getElementById('backBtn');
+const gameTitle     = document.getElementById('gameTitle');
+const boardShell    = document.getElementById('boardShell');
+const gameControls  = document.getElementById('gameControls');
+const quitBtn       = document.getElementById('quitBtn');
+
+const profiles = {}, profNames = {}, profRings = {}, playerDice = {};
+for (const c of COLORS) {
+  profiles[c]  = document.getElementById(`prof-${c}`);
+  profNames[c] = document.getElementById(`profName-${c}`);
+  profRings[c] = document.getElementById(`profRing-${c}`);
+  playerDice[c] = document.getElementById(`dice-${c}`);
+}
+
+/* ════════════════════════════════════════════════════════
+   BOARD CONSTRUCTION
+════════════════════════════════════════════════════════ */
+function classifyCell(r, c) {
+  if (r <= 5 && c <= 5) return inHome(r, c, 'r');
+  if (r <= 5 && c >= 9) return inHome(r, c - 9, 'b');
+  if (r >= 9 && c <= 5) return inHome(r - 9, c, 'y');
+  if (r >= 9 && c >= 9) return inHome(r - 9, c - 9, 'g');
+  if (r >= 6 && r <= 8 && c >= 6 && c <= 8)
+    return ({'7,6':'tri-r','6,7':'tri-b','7,8':'tri-g','8,7':'tri-y','7,7':'home-star'})[rc(r,c)] || 'center-bg';
+  if (r === 7 && c >= 1 && c <= 5)  return 'str-r';
+  if (c === 7 && r >= 1 && r <= 5)  return 'str-b';
+  if (r === 7 && c >= 9 && c <= 13) return 'str-g';
+  if (c === 7 && r >= 9 && r <= 13) return 'str-y';
+  return 'path';
+}
+function inHome(lr, lc, color) {
+  return (lr >= 1 && lr <= 4 && lc >= 1 && lc <= 4) ? `inner-${color}` : `zone-${color}`;
+}
+
+const START_MARKERS = {'6,1':'r','1,8':'b','8,13':'g','13,6':'y'};
+
+(function buildBoard() {
+  for (let r = 0; r < 15; r++) {
+    for (let c = 0; c < 15; c++) {
+      const cell = document.createElement('div');
+      cell.className = `cell ${classifyCell(r, c)}`;
+      if (SAFE_COORDS.has(rc(r,c))) cell.classList.add('safe');
+      if (START_MARKERS[rc(r,c)])    cell.classList.add(`start-${START_MARKERS[rc(r,c)]}`);
+      cellRefs[rc(r,c)] = cell;
+      boardEl.appendChild(cell);
+    }
+  }
+})();
+
+/* ════════════════════════════════════════════════════════
+   TOKEN DOM
+════════════════════════════════════════════════════════ */
+function makeTokenEl(color, id) {
+  const div = document.createElement('div');
+  div.className = `token tok-${color}`;
+  if (color === 'r') {
+    div.addEventListener('click', () => onTokenClick(color, id));
+  } else {
+    div.style.cursor = 'default';
+  }
+  return div;
+}
+
+function placeAt(tok, cell) {
+  if (!cell) return;
+  if (tok.el.parentNode) tok.el.parentNode.removeChild(tok.el);
+  cell.appendChild(tok.el);
+}
+
+function renderToken(tok) {
+  if (tok.pos === 56) {
+    placeAt(tok, cellRefs['7,7']);
+    tok.el.style.opacity = '0.55';
+    tok.el.style.transform = 'scale(0.55)';
+    return;
+  }
+  const coord = getCoord(tok.color, tok.pos);
+  if (!coord) return;
+  placeAt(tok, cellRefs[rc(...coord)]);
+  tok.el.style.opacity = '';
+  tok.el.style.transform = '';
+  tok.el.classList.add('moving');
+  setTimeout(() => tok.el.classList.remove('moving'), 350);
+}
+
+/* ════════════════════════════════════════════════════════
+   GAME INIT
+════════════════════════════════════════════════════════ */
+function initGame() {
+  document.querySelectorAll('.token').forEach(t => t.remove());
+  tokens = {}; turnIdx = 0; lastRoll = 0;
+  waitMove = false; animating = false; gameOver = false; rolling = false;
+  if (botTurnTimer) { clearTimeout(botTurnTimer); botTurnTimer = null; }
+
+  for (const c of COLORS) {
+    tokens[c] = [0,1,2,3].map(id => {
+      const tok = { color: c, id, pos: -1, el: makeTokenEl(c, id) };
+      const [r, col] = HOME_SLOTS[c][id];
+      placeAt(tok, cellRefs[rc(r, col)]);
+      return tok;
+    });
+  }
+
+  updateBadgesVisibility();
+  updateProfilesVisibility();
+  updateDiceVisibility();
+  activateBadge(activeColors[0]);
+  activateProfile(activeColors[0]);
+  updateActiveDice();
+  quitBtn.style.display = 'flex';
+
+  if (activeColors[0] !== 'r') setTimeout(() => triggerBotTurn(), 800);
+}
+
+function pname(color) { return playerNames[color] || COLOR_NAMES[color]; }
+
+function updateBadgesVisibility() {
+  for (const c of COLORS) {
+    const badge = document.getElementById(`badge-${c}`);
+    if (badge) badge.style.display = activeColors.includes(c) ? '' : 'none';
+  }
+}
+
+function updateProfilesVisibility() {
+  for (const c of COLORS) {
+    const prof = profiles[c];
+    if (!prof) continue;
+    if (activeColors.includes(c)) {
+      prof.classList.remove('hidden-profile');
+      profNames[c].textContent = pname(c).toUpperCase();
+    } else {
+      prof.classList.add('hidden-profile');
+    }
+  }
+}
+
+function activateProfile(color) {
+  for (const c of COLORS) {
+    const prof = profiles[c];
+    if (prof) {
+      prof.classList.toggle('active-turn', c === color);
+      prof.classList.toggle('is-bot', c !== 'r');
+    }
+  }
+}
+
+function activateBadge(color) {
+  document.querySelectorAll('.player-badge').forEach(b => b.classList.remove('active'));
+  const badge = document.getElementById(`badge-${color}`);
+  if (badge) badge.classList.add('active');
+}
+
+/* ════════════════════════════════════════════════════════
+   PER-PLAYER DICE
+════════════════════════════════════════════════════════ */
+function updateDiceVisibility() {
+  for (const c of COLORS) {
+    const d = playerDice[c];
+    if (!d) continue;
+    if (activeColors.includes(c)) {
+      d.style.display = '';
+    } else {
+      d.style.display = 'none';
+    }
+  }
+}
+
+function updateActiveDice() {
+  const activeColor = activeColors[turnIdx];
+  for (const c of COLORS) {
+    const d = playerDice[c];
+    if (!d) continue;
+    d.classList.remove('visible', 'disabled', 'rolling');
+    if (c === activeColor) {
+      d.classList.add('visible');
+      if (c !== 'r') d.classList.add('disabled');
+    }
+  }
+}
+
+function getActiveDiceEl() {
+  return playerDice[activeColors[turnIdx]];
+}
+
+/* Human clicks their dice to roll */
+for (const c of COLORS) {
+  playerDice[c].addEventListener('click', () => {
+    if (c !== 'r' || activeColors[turnIdx] !== 'r') return;
+    doRoll();
+  });
+}
+
+/* ════════════════════════════════════════════════════════
+   MOVE VALIDATION
+════════════════════════════════════════════════════════ */
+function movableTokens(color, roll) {
+  return tokens[color].filter(tok => {
+    if (tok.pos === 56) return false;
+    if (tok.pos === -1) return roll === 6;
+    return tok.pos + roll <= 56;
+  });
+}
+
+/* ════════════════════════════════════════════════════════
+   DICE ROLL
+════════════════════════════════════════════════════════ */
+function doRoll() {
+  if (rolling || waitMove || animating || gameOver) return;
+  const currentColor = activeColors[turnIdx];
+  if (!activeColors.includes(currentColor)) return;
+  rolling = true;
+
+  const diceEl = getActiveDiceEl();
+  if (diceEl) diceEl.classList.add('rolling');
+
+  const result = Math.floor(Math.random() * 6) + 1;
+  let ticks = 0;
+  const iv = setInterval(() => {
+    SFX.diceClick();
+    const face = FACES[~~(Math.random() * 6)];
+    if (diceEl) diceEl.textContent = face;
+    if (++ticks >= 10) {
+      clearInterval(iv);
+      if (diceEl) {
+        diceEl.textContent = FACES[result - 1];
+        diceEl.classList.remove('rolling');
+      }
+      rolling = false;
+      SFX.diceLand();
+      onRollDone(result);
+    }
+  }, 75);
+}
+
+function onRollDone(roll) {
+  lastRoll = roll;
+  const color = activeColors[turnIdx];
+  const movable = movableTokens(color, roll);
+  const isBot = color !== 'r';
+
+  /* ── NO MOVE POSSIBLE ── */
+  if (movable.length === 0) {
+    /* roll of 6 with no movable = still pass turn (no extra roll for nothing) */
+    setTimeout(() => nextTurn(false), isBot ? 700 : 1000);
+    return;
+  }
+
+  /* ── BOT: always let botPickMove handle everything ── */
+  if (isBot) {
+    /* botPickMove is already scheduled 980ms after doRoll() started,
+       which is ~230ms after onRollDone fires. Just return and let it run. */
+    return;
+  }
+
+  /* ── HUMAN: auto-move if only one option ── */
+  if (roll === 6 && tokens[color].every(tok => tok.pos === -1)) {
+    setTimeout(() => doMove(tokens[color][0], roll), 420);
+    return;
+  }
+
+  if (movable.length === 1) {
+    setTimeout(() => doMove(movable[0], roll), 420);
+    return;
+  }
+
+  /* multiple options — highlight for player to pick */
+  waitMove = true;
+  movable.forEach(tok => tok.el.classList.add('highlight'));
+}
+
+/* ════════════════════════════════════════════════════════
+   TOKEN CLICK (Human only — Red)
+════════════════════════════════════════════════════════ */
+function onTokenClick(color, id) {
+  if (color !== 'r') return;
+  if (!waitMove || color !== activeColors[turnIdx]) return;
+  const tok = tokens[color][id];
+  if (!tok.el.classList.contains('highlight')) return;
+  clearHighlights();
+  waitMove = false;
+  doMove(tok, lastRoll);
+}
+
+function clearHighlights() {
+  document.querySelectorAll('.token.highlight').forEach(e => e.classList.remove('highlight'));
+}
+
+/* ════════════════════════════════════════════════════════
+   MOVE EXECUTION
+════════════════════════════════════════════════════════ */
+function doMove(tok, roll) {
+  animating = true;
+
+  if (tok.pos === -1) {
+    tok.pos = 0;
+    renderToken(tok);
+    SFX.tokenEnter();
+    resolveKills(tok);
+    animating = false;
+    nextTurn(true);
+    return;
+  }
+
+  const target = tok.pos + roll;
+  stepAnimate(tok, target, () => {
+    resolveKills(tok);
+    checkWin(tok);
+    animating = false;
+    if (!gameOver) nextTurn(roll === 6);
+  });
+}
+
+function stepAnimate(tok, targetPos, done) {
+  if (tok.pos >= targetPos) { done(); return; }
+  tok.pos++;
+  renderToken(tok);
+  SFX.tokenStep();
+  setTimeout(() => stepAnimate(tok, targetPos, done), 180);
+}
+
+/* ════════════════════════════════════════════════════════
+   KILL LOGIC
+════════════════════════════════════════════════════════ */
+function resolveKills(mover) {
+  if (mover.pos >= 51) return;
+  if (isSafe(mover.color, mover.pos)) return;
+  const dest = getCoord(mover.color, mover.pos);
+  if (!dest) return;
+  const [mr, mc] = dest;
+
+  for (const c of activeColors) {
+    if (c === mover.color) continue;
+    for (const tok of tokens[c]) {
+      if (tok.pos < 0 || tok.pos >= 51) continue;
+      const coord = getCoord(c, tok.pos);
+      if (!coord || coord[0] !== mr || coord[1] !== mc) continue;
+      const hasPartner = tokens[c].some(t => t !== tok && t.pos === tok.pos);
+      if (!hasPartner) killToken(tok);
+    }
+  }
+}
+
+function killToken(victim) {
+  victim.el.classList.add('killed');
+  SFX.kill();
+  setTimeout(() => {
+    victim.pos = -1;
+    victim.el.classList.remove('killed');
+    victim.el.style.opacity = '';
+    victim.el.style.transform = '';
+    const [r, c] = HOME_SLOTS[victim.color][victim.id];
+    placeAt(victim, cellRefs[rc(r, c)]);
+  }, 380);
+}
+
+/* ════════════════════════════════════════════════════════
+   WIN CONDITION
+════════════════════════════════════════════════════════ */
+function checkWin(tok) {
+  if (tok.pos !== 56) return;
+  if (!tokens[tok.color].every(t => t.pos === 56)) return;
+  if (!activeColors.includes(tok.color)) return;
+  gameOver = true;
+  setTimeout(() => showWinner(tok.color), 350);
+}
+
+function showWinner(color) {
+  SFX.win();
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;cursor:pointer;animation:fadeIn .4s ease;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);';
+  overlay.innerHTML = `<div style="font-size:5rem;margin-bottom:12px;filter:drop-shadow(0 0 20px rgba(0,229,255,0.7))">🏆</div><div style="font-size:2rem;font-weight:900;background:linear-gradient(135deg,#00e5ff,#e91e63);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:5px;font-family:'Poppins',sans-serif;filter:drop-shadow(0 0 20px rgba(0,229,255,0.5))">${pname(color).toUpperCase()} WINS!</div><div style="margin-top:20px;color:rgba(0,229,255,0.4);font-size:.82rem;letter-spacing:3px;font-family:'Poppins',sans-serif;text-transform:uppercase">Tap to play again</div>`;
+  overlay.addEventListener('click', () => { overlay.remove(); initGame(); });
+  document.body.appendChild(overlay);
+}
+
+/* ════════════════════════════════════════════════════════
+   TURN MANAGEMENT
+════════════════════════════════════════════════════════ */
+let botTurnTimer = null; /* guard against double-scheduling */
+
+function nextTurn(rollAgain) {
+  if (gameOver) return;
+
+  if (!rollAgain) {
+    turnIdx = (turnIdx + 1) % activeColors.length;
+    activateBadge(activeColors[turnIdx]);
+    activateProfile(activeColors[turnIdx]);
+  }
+  updateActiveDice();
+
+  const currentColor = activeColors[turnIdx];
+  if (currentColor !== 'r') {
+    /* cancel any pending bot timer before scheduling a new one */
+    if (botTurnTimer) clearTimeout(botTurnTimer);
+    botTurnTimer = setTimeout(() => {
+      botTurnTimer = null;
+      triggerBotTurn();
+    }, rollAgain ? 900 : 1100);
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   CPU BOT AI ENGINE — Professional Smart AI
+════════════════════════════════════════════════════════ */
+
+/* -- How many steps can opponent reach this coord in 1-6 rolls -- */
+function getDangerLevel(color, pos) {
+  if (pos < 0 || pos >= 51) return 0;
+  if (isSafe(color, pos)) return 0;
+  const coord = getCoord(color, pos);
+  if (!coord) return 0;
+  let danger = 0;
+  for (const oppColor of activeColors) {
+    if (oppColor === color) continue;
+    for (const oppTok of tokens[oppColor]) {
+      if (oppTok.pos < 0 || oppTok.pos >= 51) continue;
+      /* check if opponent can land here in 1–6 steps */
+      for (let steps = 1; steps <= 6; steps++) {
+        const oppFuture = oppTok.pos + steps;
+        if (oppFuture > 51) break;
+        const oppCoord = getCoord(oppColor, oppFuture);
+        if (oppCoord && oppCoord[0] === coord[0] && oppCoord[1] === coord[1]) {
+          danger += (7 - steps); /* closer = more danger */
+          break;
+        }
+      }
+    }
+  }
+  return danger;
+}
+
+/* -- Score a single move -- */
+function scoreMove(color, tok, roll) {
+  const futurePos = tok.pos === -1 ? 0 : tok.pos + roll;
+
+  /* ── INSTANT WIN ── */
+  if (futurePos === 56) return 100000;
+
+  let score = 0;
+
+  /* ── ENTER FROM YARD (roll 6) ── */
+  if (tok.pos === -1) {
+    const onBoard = tokens[color].filter(t => t.pos >= 0 && t.pos < 56).length;
+    score += 300 + onBoard * 20;           /* priority goes up as fewer pieces are on board */
+    /* penalty if start square is dangerous */
+    const startDanger = getDangerLevel(color, 0);
+    score -= startDanger * 15;
+    return score;
+  }
+
+  /* ── KILL AN OPPONENT ── */
+  if (futurePos <= 50) {
+    const futureCoord = getCoord(color, futurePos);
+    if (futureCoord) {
+      for (const oppColor of activeColors) {
+        if (oppColor === color) continue;
+        for (const oppTok of tokens[oppColor]) {
+          if (oppTok.pos < 0 || oppTok.pos >= 51) continue;
+          const oppCoord = getCoord(oppColor, oppTok.pos);
+          if (!oppCoord) continue;
+          if (oppCoord[0] === futureCoord[0] && oppCoord[1] === futureCoord[1]) {
+            const shielded = tokens[oppColor].some(t => t !== oppTok && t.pos === oppTok.pos);
+            if (!shielded && !isSafe(oppColor, oppTok.pos)) {
+              score += 800 + oppTok.pos * 3; /* killing advanced enemy = huge bonus */
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /* ── HOME STRETCH ── */
+  if (futurePos >= 51 && futurePos <= 55) {
+    score += 400 + (futurePos - 50) * 30;
+    return score; /* safe zone, no danger penalty needed */
+  }
+
+  /* ── PROGRESS BONUS ── forward progress, prefer advanced pieces ── */
+  score += futurePos * 4;
+
+  /* ── ESCAPE DANGER ── current square threatened, reward moving away ── */
+  const currentDanger = getDangerLevel(color, tok.pos);
+  if (currentDanger > 0) score += currentDanger * 60;
+
+  /* ── AVOID DANGER ── penalty for landing on threatened square ── */
+  if (futurePos <= 50) {
+    const futureDanger = getDangerLevel(color, futurePos);
+    score -= futureDanger * 70;
+  }
+
+  /* ── SAFE SQUARE BONUS ── */
+  if (futurePos <= 50 && isSafe(color, futurePos)) score += 80;
+
+  /* ── PREFER PIECES ALREADY ON BOARD over sitting idle ── */
+  score += 30;
+
+  /* ── BLOCK OPPONENT ── land on a square ahead of a chasing opponent ── */
+  if (futurePos <= 50) {
+    const futureCoord = getCoord(color, futurePos);
+    if (futureCoord) {
+      for (const oppColor of activeColors) {
+        if (oppColor === color) continue;
+        for (const oppTok of tokens[oppColor]) {
+          if (oppTok.pos < 0 || oppTok.pos >= 51) continue;
+          for (let steps = 1; steps <= 3; steps++) {
+            const oppFuture = oppTok.pos + steps;
+            if (oppFuture > 51) break;
+            const oppCoord = getCoord(oppColor, oppFuture);
+            if (oppCoord && oppCoord[0] === futureCoord[0] && oppCoord[1] === futureCoord[1]) {
+              score += 40; /* we'll be blocking their path */
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return score;
+}
+
+function triggerBotTurn() {
+  if (gameOver) return;
+  const color = activeColors[turnIdx];
+  if (color === 'r') return;             /* human's turn, not bot */
+  if (rolling || animating) return;      /* busy, nextTurn will reschedule */
+
+  /* roll the dice */
+  doRoll();
+
+  /* botPickMove fires after dice animation (750ms) + small buffer */
+  setTimeout(() => botPickMove(color), 980);
+}
+
+function botPickMove(color) {
+  /* stale call — turn changed or game over */
+  if (gameOver || color !== activeColors[turnIdx]) return;
+  /* still animating a previous move — shouldn't normally happen */
+  if (animating || rolling) return;
+
+  const roll = lastRoll;
+  const movable = movableTokens(color, roll);
+
+  /* nothing to move — nextTurn was already called via onRollDone */
+  if (movable.length === 0) return;
+
+  /* pick best token using AI scoring */
+  let bestTok = movable[0];
+  let bestScore = -Infinity;
+  for (const tok of movable) {
+    const s = scoreMove(color, tok, roll);
+    if (s > bestScore) { bestScore = s; bestTok = tok; }
+  }
+
+  setTimeout(() => {
+    /* double-check before committing the move */
+    if (gameOver || color !== activeColors[turnIdx]) return;
+    if (animating || rolling) return;
+    doMove(bestTok, roll);
+  }, 350);
+}
+
+/* ════════════════════════════════════════════════════════
+   MENU / SETUP LOGIC
+════════════════════════════════════════════════════════ */
+const COLOR_SCHEMES = { 2: ['r','y'], 4: ['r','b','g','y'] };
+
+welcomeBtn.addEventListener('click', () => {
+  welcomeScreen.classList.add('hidden');
+  setupScreen.classList.remove('hidden');
+  setTimeout(() => nameInput.focus(), 400);
+});
+
+/* Avatar selection */
+document.querySelectorAll('.avatar-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+    selectedAvatar = opt.dataset.avatar;
+  });
+});
+
+/* Player count */
+document.querySelectorAll('.count-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedCount = parseInt(btn.dataset.count);
+    validateGo();
+  });
+});
+
+nameInput.addEventListener('input', validateGo);
+function validateGo() { goBtn.disabled = nameInput.value.trim().length === 0; }
+
+backBtn.addEventListener('click', () => {
+  setupScreen.classList.add('hidden');
+  welcomeScreen.classList.remove('hidden');
+});
+
+goBtn.addEventListener('click', startGame);
+nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !goBtn.disabled) startGame(); });
+
+function startGame() {
+  const playerName = nameInput.value.trim();
+  if (!playerName) return;
+
+  activeColors = [...COLOR_SCHEMES[selectedCount]];
+
+  playerNames = {};
+  for (const c of COLORS) {
+    playerNames[c] = c === 'r' ? playerName : (COLOR_NAMES[c] || c);
+  }
+
+  /* Update badges */
+  for (const c of COLORS) {
+    const badge = document.getElementById(`badge-${c}`);
+    if (badge) {
+      const span = badge.querySelector('.pname');
+      if (span) span.textContent = pname(c).toUpperCase();
+    }
+  }
+
+  /* Update profiles */
+  profRings.r.childNodes[0].textContent = selectedAvatar;
+  for (const c of COLORS) {
+    profNames[c].textContent = pname(c).toUpperCase();
+    if (c !== 'r') {
+      const ring = profRings[c];
+      ring.childNodes[0].textContent = BOT_AVATARS[c] || '🤖';
+    }
+  }
+
+  setupScreen.classList.add('hidden');
+  gameTitle.style.display = '';
+  boardShell.style.display = '';
+  gameControls.style.display = '';
+
+  initGame();
+}
+
+/* ════════════════════════════════════════════════════════
+   QUIT
+════════════════════════════════════════════════════════ */
+quitBtn.addEventListener('click', () => {
+  if (animating || rolling) return;
+  showQuitConfirm();
+});
+
+function showQuitConfirm() {
+  const existing = document.querySelector('.quit-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'quit-overlay';
+  overlay.innerHTML = `<div class="quit-card"><h3>Quit Game?</h3><div class="quit-btns"><button class="quit-no" id="quitNo">Stay</button><button class="quit-yes" id="quitYes">Quit</button></div></div>`;
+  document.body.appendChild(overlay);
+
+  document.getElementById('quitYes').addEventListener('click', () => { overlay.remove(); quitToMenu(); });
+  document.getElementById('quitNo').addEventListener('click', () => { overlay.remove(); });
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+}
+
+function quitToMenu() {
+  gameOver = true; rolling = false; animating = false; waitMove = false;
+  if (botTurnTimer) { clearTimeout(botTurnTimer); botTurnTimer = null; }
+  clearHighlights();
+
+  quitBtn.style.display = 'none';
+  gameTitle.style.display = 'none';
+  boardShell.style.display = 'none';
+  gameControls.style.display = 'none';
+
+  for (const c of COLORS) {
+    const prof = profiles[c];
+    if (prof) prof.classList.remove('active-turn', 'is-bot');
+  }
+
+  document.querySelectorAll('.token').forEach(t => t.remove());
+
+  setupScreen.classList.add('hidden');
+  welcomeScreen.classList.remove('hidden');
+}
+
+/* ════════════════════════════════════════════════════════
+   MUTE
+════════════════════════════════════════════════════════ */
+const muteBtn = document.getElementById('muteBtn');
+muteBtn.addEventListener('click', () => {
+  const m = SFX.toggleMute();
+  muteBtn.textContent = m ? '🔇' : '🔊';
+  muteBtn.classList.toggle('muted', m);
+});
+</script>
+</body>
+</html>
